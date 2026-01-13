@@ -1,0 +1,1 @@
+# onepiece_collector_ai_based_app
