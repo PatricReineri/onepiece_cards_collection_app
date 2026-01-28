@@ -31,7 +31,7 @@ class _AddCardPageState extends State<AddCardPage> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _controller.addListener(_onControllerUpdate);
-    _initCamera();
+    // _initCamera(); // Disabled for now as per user request
   }
 
   @override
@@ -53,7 +53,7 @@ class _AddCardPageState extends State<AddCardPage> with WidgetsBindingObserver {
     if (state == AppLifecycleState.inactive) {
       _cameraController?.dispose();
     } else if (state == AppLifecycleState.resumed) {
-      _initCamera();
+      // _initCamera(); // Disabled for now
     }
   }
 
@@ -93,11 +93,11 @@ class _AddCardPageState extends State<AddCardPage> with WidgetsBindingObserver {
             _buildHeader(),
 
             // Mode toggle
-            _buildModeToggle(),
+            // _buildModeToggle(), // Disabled for now
 
             // Content (camera or manual input)
             Expanded(
-              child: _isManualMode ? _buildManualInput() : _buildCameraView(),
+              child: _buildManualInput(), // Force manual mode
             ),
           ],
         ),

@@ -59,7 +59,13 @@ class _SearchCardPageState extends State<SearchCardPage> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/home'),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/home');
+            }
+          },
         ),
         title: const Text('Search Card', style: TextStyle(color: AppColors.textPrimary)),
         backgroundColor: Colors.transparent,

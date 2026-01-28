@@ -100,7 +100,13 @@ class _SetDetailPageState extends State<SetDetailPage> {
         children: [
           // Back button
           IconButton(
-            onPressed: () => context.go('/home'),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/home');
+              }
+            },
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(

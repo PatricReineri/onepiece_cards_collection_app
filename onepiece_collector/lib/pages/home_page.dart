@@ -232,10 +232,10 @@ class _HomePageState extends State<HomePage> {
                     onSelected: (value) {
                       switch (value) {
                         case 'sets_checkpoint':
-                          context.go('/sets-checkpoint');
+                          context.push('/sets-checkpoint');
                           break;
                         case 'search':
-                          context.go('/search-card');
+                          context.push('/search-card');
                           break;
                         case 'import':
                           _importCollection();
@@ -427,7 +427,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _navigateToSet(SetModel set) {
-    context.go('/set/${set.code}');
+    context.push('/set/${set.code}');
   }
 
   Future<void> _syncFromApi() async {
