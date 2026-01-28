@@ -106,12 +106,6 @@ class _RarePageState extends State<RarePage> {
                 'Rare & Valuable',
                 style: Theme.of(context).textTheme.headlineLarge,
               ),
-              // Refresh prices button
-              IconButton(
-                onPressed: _controller.isLoading ? null : _refreshPrices,
-                icon: const Icon(Icons.refresh, color: AppColors.cyan),
-                tooltip: 'Refresh prices',
-              ),
             ],
           ),
           const SizedBox(height: 4),

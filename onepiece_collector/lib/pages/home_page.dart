@@ -1,6 +1,6 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -9,6 +9,7 @@ import '../theme/app_theme.dart';
 import '../data/models/set_model.dart';
 import '../controllers/collection_controller.dart';
 import '../widgets/set_card.dart';
+import '../widgets/skeleton_set_card.dart';
 import 'package:go_router/go_router.dart';
 
 /// Sort options for sets
@@ -28,25 +29,18 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final CollectionController _controller = CollectionController();
   SetSortOption _currentSort = SetSortOption.completionDesc;
+
+  // Access controller via Provider (watch for UI updates)
+  CollectionController get _controller => context.watch<CollectionController>();
 
   @override
   void initState() {
     super.initState();
-    _controller.init();
-    _controller.addListener(_onControllerUpdate);
-  }
-
-  @override
-  void dispose() {
-    _controller.removeListener(_onControllerUpdate);
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _onControllerUpdate() {
-    if (mounted) setState(() {});
+    // Initialize controller via Provider
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<CollectionController>().init();
+    });
   }
 
   /// Get sorted sets based on current sort option
@@ -119,6 +113,7 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   // Sort button
                   PopupMenuButton<SetSortOption>(
+                    enabled: !_controller.isLoading,
                     icon: const Icon(Icons.sort, color: AppColors.cyan),
                     color: AppColors.darkBlue,
                     shape: RoundedRectangleBorder(
@@ -227,6 +222,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   // Three-dot menu for import/export
                   PopupMenuButton<String>(
+                    enabled: !_controller.isLoading, // Disable when loading
                     icon: const Icon(Icons.more_vert, color: AppColors.cyan),
                     color: AppColors.darkBlue,
                     shape: RoundedRectangleBorder(
@@ -235,6 +231,12 @@ class _HomePageState extends State<HomePage> {
                     ),
                     onSelected: (value) {
                       switch (value) {
+                        case 'sets_checkpoint':
+                          context.go('/sets-checkpoint');
+                          break;
+                        case 'search':
+                          context.go('/search-card');
+                          break;
                         case 'import':
                           _importCollection();
                           break;
@@ -244,6 +246,26 @@ class _HomePageState extends State<HomePage> {
                       }
                     },
                     itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'sets_checkpoint',
+                        child: Row(
+                          children: [
+                            Icon(Icons.checklist, color: AppColors.cyan, size: 20),
+                            const SizedBox(width: 12),
+                            Text('Sets Checkpoint', style: TextStyle(color: AppColors.textPrimary)),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'search',
+                        child: Row(
+                          children: [
+                            Icon(Icons.search, color: AppColors.cyan, size: 20),
+                            const SizedBox(width: 12),
+                            Text('Search Card', style: TextStyle(color: AppColors.textPrimary)),
+                          ],
+                        ),
+                      ),
                       PopupMenuItem(
                         value: 'import',
                         child: Row(
@@ -276,9 +298,15 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildContent() {
-    if (_controller.isLoading && _controller.sets.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.cyan),
+    if (_controller.isLoading) {
+      // Show skeleton loading
+      return ListView.builder(
+        padding: const EdgeInsets.all(20),
+        itemCount: 5, // Show 5 skeleton items
+        physics: const NeverScrollableScrollPhysics(), // Disable scrolling during load
+        itemBuilder: (context, index) {
+          return const SkeletonSetCard();
+        },
       );
     }
 
@@ -293,11 +321,17 @@ class _HomePageState extends State<HomePage> {
     final sortedSets = _sortedSets;
 
     return RefreshIndicator(
-      onRefresh: _controller.loadSets,
+      onRefresh: () => context.read<CollectionController>().loadSets(),
       color: AppColors.cyan,
       backgroundColor: AppColors.darkBlue,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: GridView.builder(
+        padding: const EdgeInsets.all(20),
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 600, // On phones (<600) this is 1 column. On tablets it becomes 2+.
+          childAspectRatio: 0.85, // Adjust aspect ratio for card content
+          crossAxisSpacing: 20,
+          mainAxisSpacing: 20,
+        ),
         itemCount: sortedSets.length,
         itemBuilder: (context, index) {
           final set = sortedSets[index];
@@ -377,8 +411,8 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: () {
-                _controller.clearError();
-                _controller.loadSets();
+                context.read<CollectionController>().clearError();
+                context.read<CollectionController>().loadSets();
               },
               icon: const Icon(Icons.refresh),
               label: const Text('Retry'),
@@ -397,7 +431,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _syncFromApi() async {
-    await _controller.syncSetsFromApi();
+    await context.read<CollectionController>().syncSetsFromApi();
   }
 
   Future<void> _importCollection() async {
@@ -428,7 +462,7 @@ class _HomePageState extends State<HomePage> {
       final jsonString = await file.readAsString();
       
       // Import collection
-      final count = await _controller.importCollection(jsonString);
+      final count = await context.read<CollectionController>().importCollection(jsonString);
       
       // Close dialog
       if (mounted) Navigator.of(context, rootNavigator: true).pop();
@@ -437,7 +471,7 @@ class _HomePageState extends State<HomePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Importate $count carte nella collezione'),
+            content: Text('Imported $count cards to collection'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -473,7 +507,7 @@ class _HomePageState extends State<HomePage> {
       }
 
       // Get JSON data
-      final jsonString = await _controller.exportCollection();
+      final jsonString = await context.read<CollectionController>().exportCollection();
       
       // Get temp directory and create file
       final directory = await getTemporaryDirectory();

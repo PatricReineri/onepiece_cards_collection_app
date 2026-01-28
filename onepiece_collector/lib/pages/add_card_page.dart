@@ -196,118 +196,124 @@ class _AddCardPageState extends State<AddCardPage> with WidgetsBindingObserver {
   }
 
   Widget _buildManualInput() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 40),
-
-            // Icon
-            Center(
-              child: Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  gradient: AppColors.accentGradient,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.style,
-                  size: 48,
-                  color: AppColors.white,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 32),
-
-            // Instructions
-            Text(
-              'Enter Card Code',
-              style: Theme.of(context).textTheme.headlineMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Format: OP01-001, ST01-015, etc.',
-              style: TextStyle(color: AppColors.textMuted),
-              textAlign: TextAlign.center,
-            ),
-
-            const SizedBox(height: 32),
-
-            // Code input
-            TextFormField(
-              controller: _codeController,
-              textCapitalization: TextCapitalization.characters,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 2,
-              ),
-              textAlign: TextAlign.center,
-              decoration: InputDecoration(
-                hintText: 'OP01-001',
-                hintStyle: TextStyle(
-                  color: AppColors.textMuted.withOpacity(0.5),
-                  fontSize: 24,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 2,
-                ),
-                errorStyle: const TextStyle(color: AppColors.error),
-              ),
-              validator: _validateCode,
-              onFieldSubmitted: (_) => _addCard(),
-            ),
-
-            const SizedBox(height: 32),
-
-            // Error message
-            if (_controller.error != null)
-              Container(
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: AppColors.error.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.error.withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.error_outline, color: AppColors.error),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        _controller.error!,
-                        style: const TextStyle(color: AppColors.error),
-                      ),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 600),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 40),
+                // ... content remains same, just wrapping ...
+                // To minimize diff size, I will use original content inside
+                // Icon
+                Center(
+                  child: Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.accentGradient,
+                      shape: BoxShape.circle,
                     ),
-                  ],
+                    child: const Icon(
+                      Icons.style,
+                      size: 48,
+                      color: AppColors.white,
+                    ),
+                  ),
                 ),
-              ),
 
-            // Add button
-            ElevatedButton(
-              onPressed: _controller.isLoading ? null : _addCard,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: _controller.isLoading
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.darkBlue,
-                      ),
-                    )
-                  : const Text('Add to Collection'),
+                const SizedBox(height: 32),
+
+                // Instructions
+                Text(
+                  'Enter Card Code',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Format: OP01-001, ST01-015, etc.',
+                  style: TextStyle(color: AppColors.textMuted),
+                  textAlign: TextAlign.center,
+                ),
+
+                const SizedBox(height: 32),
+
+                // Code input
+                TextFormField(
+                  controller: _codeController,
+                  textCapitalization: TextCapitalization.characters,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 2,
+                  ),
+                  textAlign: TextAlign.center,
+                  decoration: InputDecoration(
+                    hintText: 'OP01-001',
+                    hintStyle: TextStyle(
+                      color: AppColors.textMuted.withOpacity(0.5),
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 2,
+                    ),
+                    errorStyle: const TextStyle(color: AppColors.error),
+                  ),
+                  validator: _validateCode,
+                  onFieldSubmitted: (_) => _addCard(),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Error message
+                if (_controller.error != null)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: AppColors.error),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _controller.error!,
+                            style: const TextStyle(color: AppColors.error),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // Add button
+                ElevatedButton(
+                  onPressed: _controller.isLoading ? null : _addCard,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: _controller.isLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.darkBlue,
+                          ),
+                        )
+                      : const Text('Add to Collection'),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -501,8 +507,15 @@ class ScanFramePainter extends CustomPainter {
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke;
 
-    final frameWidth = size.width * 0.8;
-    final frameHeight = frameWidth * 1.4; // Card aspect ratio
+    var frameWidth = size.width * 0.8;
+    var frameHeight = frameWidth * 1.4; // Card aspect ratio
+
+    // Check if height exceeds available space (e.g. landscape)
+    if (frameHeight > size.height * 0.85) {
+      frameHeight = size.height * 0.85;
+      frameWidth = frameHeight / 1.4;
+    }
+
     final left = (size.width - frameWidth) / 2;
     final top = (size.height - frameHeight) / 2;
 

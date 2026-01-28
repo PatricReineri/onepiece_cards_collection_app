@@ -274,9 +274,16 @@ class DatabaseHelper {
   /// Get rare cards (SR, SEC, L, SP) or cards with parentheses in name (alternate art)
   Future<List<CardModel>> getRareCards() async {
     final db = await database;
+    // Include: SR, SEC, L, SP, or cards with parentheses in name (alternate art)
+    // Exclude: UC, C, and R cards without "Alternate Art" in name
     final maps = await db.query(
       'cards',
-      where: "rarity IN ('SR', 'SEC', 'L', 'SP') OR (name LIKE '%(%' AND name LIKE '%)')",
+      where: """
+        rarity IN ('SR', 'SEC', 'L', 'SP') 
+        OR (rarity = 'R' AND name LIKE '%Alternate Art%')
+        OR (name LIKE '%(%' AND name LIKE '%)%' AND rarity NOT IN ('C', 'UC', 'R'))
+        OR (name LIKE '%(%' AND name LIKE '%)%' AND rarity = 'R' AND name LIKE '%Alternate Art%')
+      """,
       orderBy: 'rarity DESC, code ASC',
     );
     return maps.map((map) => CardModel.fromMap(map)).toList();

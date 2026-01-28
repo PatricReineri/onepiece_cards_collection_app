@@ -148,11 +148,14 @@ class ApiService {
   /// Note: The API doesn't have a search endpoint, so we fetch all cards and filter
   Future<List<CardModel>> searchCards(String query, {String? setId}) async {
     try {
-      List<CardModel> allCards = [];
-      
       if (setId != null) {
         // Search within a specific set
-        allCards = await getCardsBySet(setId);
+        final allCards = await getCardsBySet(setId);
+        final lowerQuery = query.toLowerCase();
+        return allCards.where((card) {
+          return card.name.toLowerCase().contains(lowerQuery) ||
+                 card.code.toLowerCase().contains(lowerQuery);
+        }).toList();
       } else {
         // If no set specified, try to extract set from query (e.g., "OP01-xxx")
         final match = RegExp(r'(OP-?\d+)').firstMatch(query.toUpperCase());
@@ -162,19 +165,51 @@ class ApiService {
           if (!extractedSetId.contains('-')) {
             extractedSetId = '${extractedSetId.substring(0, 2)}-${extractedSetId.substring(2)}';
           }
-          allCards = await getCardsBySet(extractedSetId);
+          final allCards = await getCardsBySet(extractedSetId);
+          final lowerQuery = query.toLowerCase();
+          return allCards.where((card) {
+             return card.name.toLowerCase().contains(lowerQuery) ||
+                    card.code.toLowerCase().contains(lowerQuery);
+          }).toList();
         }
+        
+        // Fallback: Global search (iteraties over all sets)
+        return await searchGlobal(query);
       }
-      
-      // Filter by query (case-insensitive)
-      final lowerQuery = query.toLowerCase();
-      return allCards.where((card) {
-        return card.name.toLowerCase().contains(lowerQuery) ||
-               card.code.toLowerCase().contains(lowerQuery);
-      }).toList();
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException('Search failed: $e');
+    }
+  }
+
+  /// Global search across ALL sets
+  /// WARNING: This is resource intensive as it fetches cards from all sets
+  Future<List<CardModel>> searchGlobal(String query) async {
+    try {
+      final sets = await getAllSets();
+      final List<Future<List<CardModel>>> futures = [];
+      final lowerQuery = query.toLowerCase();
+
+      // Optimize: Limit concurrent requests or just fire all (it's about 20-30 sets)
+      // For now, fire all but handle errors gracefully
+      for (final set in sets) {
+        futures.add(getCardsBySet(set.code).catchError((_) => <CardModel>[]));
+      }
+
+      final results = await Future.wait(futures);
+      final List<CardModel> matches = [];
+
+      for (final setCards in results) {
+        matches.addAll(setCards.where((card) {
+          return card.name.toLowerCase().contains(lowerQuery) ||
+                 card.code.toLowerCase().contains(lowerQuery);
+        }));
+      }
+
+      // Sort by code ??
+      return matches;
+    } catch (e) {
+      throw ApiException('Global search failed: $e');
     }
   }
 

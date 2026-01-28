@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'controllers/collection_controller.dart';
+import 'data/services/connection_service.dart';
 import 'routes.dart';
 import 'theme/app_theme.dart';
 
@@ -7,7 +10,7 @@ import 'theme/app_theme.dart';
 /// Following brand guidelines: modern, card-based design with glassmorphism
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Set system UI overlay style for immersive dark theme
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -17,8 +20,16 @@ void main() {
       systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
-  
-  runApp(const OnePieceCollectorApp());
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => CollectionController()),
+        ChangeNotifierProvider(create: (_) => ConnectionService()),
+      ],
+      child: const OnePieceCollectorApp(),
+    ),
+  );
 }
 
 /// Root widget for the One Piece TCG Collection app

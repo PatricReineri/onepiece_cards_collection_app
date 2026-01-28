@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -161,8 +162,8 @@ class _AllValuableCardsPageState extends State<AllValuableCardsPage> {
       backgroundColor: AppColors.darkBlue,
       child: GridView.builder(
         padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 150,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
           childAspectRatio: 0.7,
@@ -186,60 +187,104 @@ class _AllValuableCardsPageState extends State<AllValuableCardsPage> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: AppColors.darkBlue,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border.all(color: AppColors.glassBorder),
-        ),
-        child: Column(
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.textMuted,
-                borderRadius: BorderRadius.circular(2),
-              ),
+      builder: (context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final isLandscape = constraints.maxWidth > constraints.maxHeight;
+
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.85,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.darkBlue,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(color: AppColors.glassBorder),
             ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: card.imageUrl != null
-                    ? Image.network(card.imageUrl!, fit: BoxFit.contain)
-                    : Container(
-                        color: AppColors.glassWhite,
-                        child: const Icon(Icons.image, size: 64),
-                      ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              card.name,
-              style: Theme.of(context).textTheme.headlineMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            child: Column(
               children: [
-                _buildChip(card.code),
-                if (card.rarity != null) ...[
-                  const SizedBox(width: 8),
-                  _buildChip(card.rarity!, color: AppColors.purple),
-                ],
-                if (card.price != null) ...[
-                  const SizedBox(width: 8),
-                  _buildChip('\$${card.price!.toStringAsFixed(2)}', color: AppColors.success),
-                ],
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.textMuted,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                Expanded(
+                  child: isLandscape
+                    ? Row(
+                        children: [
+                           Expanded(
+                             flex: 4,
+                             child: ClipRRect(
+                               borderRadius: BorderRadius.circular(16),
+                               child: card.imageUrl != null
+                                  ? CachedNetworkImage(imageUrl: card.imageUrl!, fit: BoxFit.contain)
+                                  : Container(
+                                      color: AppColors.glassWhite,
+                                      child: const Icon(Icons.image, size: 64),
+                                    ),
+                             ),
+                           ),
+                           const SizedBox(width: 24),
+                           Expanded(
+                             flex: 6,
+                             child: SingleChildScrollView(
+                               child: _buildCardInfoInModal(card),
+                             ),
+                           ),
+                        ],
+                      )
+                    : Column(
+                        children: [
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: card.imageUrl != null
+                                  ? CachedNetworkImage(imageUrl: card.imageUrl!, fit: BoxFit.contain)
+                                  : Container(
+                                      color: AppColors.glassWhite,
+                                      child: const Icon(Icons.image, size: 64),
+                                    ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          _buildCardInfoInModal(card),
+                        ],
+                      ),
+                ),
               ],
             ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildCardInfoInModal(CardModel card) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          card.name,
+          style: Theme.of(context).textTheme.headlineMedium,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          alignment: WrapAlignment.center,
+          children: [
+            _buildChip(card.code),
+            if (card.rarity != null) 
+              _buildChip(card.rarity!, color: AppColors.purple),
+            if (card.price != null) 
+              _buildChip('\$${card.price!.toStringAsFixed(2)}', color: AppColors.success),
           ],
         ),
-      ),
+      ],
     );
   }
 

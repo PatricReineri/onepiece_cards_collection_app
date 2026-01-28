@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -226,6 +228,7 @@ class SetCard extends StatelessWidget {
     // Use local asset image: lib/data/images/{set_code}.jpg
     // Fallback to template.jpg if not found
     final setCode = set.code.replaceAll('-', ''); // OP-01 -> OP01
+
     final imagePath = 'lib/data/images/$setCode.jpg';
     final fallbackPath = 'lib/data/images/template.jpg';
 

@@ -58,33 +58,35 @@ class _SetDetailPageState extends State<SetDetailPage> {
       backgroundColor: AppColors.darkBlue,
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              const Color(0xFF1E3A5F), // Dark blue-teal at top
-              const Color(0xFF2D5A6B), // Mid teal
-              const Color(0xFF3D7A7D), // Lighter teal at bottom
-            ],
+          color: AppColors.darkBlue, 
+          image: DecorationImage(
+            image: const AssetImage('lib/data/images/pirate_background.png'),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(
+              AppColors.darkBlue.withOpacity(0.8), 
+              BlendMode.hardLight,
+            ),
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
-              // Header with back button
-              _buildHeader(),
-
-              // Search bar
-              _buildSearchBar(),
-
-              // Page indicator "PAGINA 0 di 50"
-              _buildPageIndicator(),
-
-              // Card grid - binder style
-              Expanded(
-                child: _buildCardGrid(),
-              ),
-            ],
+          child: GestureDetector(
+             onHorizontalDragEnd: (details) {
+              if (details.primaryVelocity! < -200) {
+                _controller.nextPage();
+              } else if (details.primaryVelocity! > 200) {
+                _controller.previousPage();
+              }
+            },
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(child: _buildHeader()),
+                SliverToBoxAdapter(child: _buildSearchBar()),
+                SliverToBoxAdapter(child: _buildPageIndicator()),
+                _buildSliverCardGrid(),
+                const SliverPadding(padding: EdgeInsets.only(bottom: 24)),
+              ],
+            ),
           ),
         ),
       ),
@@ -181,6 +183,9 @@ class _SetDetailPageState extends State<SetDetailPage> {
             ),
             onSelected: (value) async {
               switch (value) {
+                case 'show_missing':
+                  _showMissingCards();
+                  break;
                 case 'add_current_page':
                   await _addAllPageCards();
                   break;
@@ -194,6 +199,22 @@ class _SetDetailPageState extends State<SetDetailPage> {
             },
             itemBuilder: (context) => [
               PopupMenuItem(
+                value: 'show_missing',
+                child: Row(
+                  children: [
+                    Icon(Icons.search_off, color: AppColors.warning, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Show missing cards',
+                        style: TextStyle(color: AppColors.textPrimary),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
                 value: 'add_current_page',
                 child: Row(
                   children: [
@@ -201,7 +222,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Aggiungi pagina corrente',
+                        'Add current page',
                         style: TextStyle(color: AppColors.textPrimary),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -217,7 +238,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Aggiungi tutte C e R',
+                        'Add all C and R',
                         style: TextStyle(color: AppColors.textPrimary),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -233,7 +254,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Rimuovi tutte C e R',
+                        'Remove all C and R',
                         style: TextStyle(color: AppColors.textPrimary),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -397,104 +418,63 @@ class _SetDetailPageState extends State<SetDetailPage> {
     );
   }
 
-  Widget _buildCardGrid() {
+  Widget _buildSliverCardGrid() {
     if (_controller.isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.cyan),
+      return const SliverFillRemaining(
+        child: Center(child: CircularProgressIndicator(color: AppColors.cyan)),
       );
     }
 
     if (_controller.error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: AppColors.error),
-            const SizedBox(height: 16),
-            Text(
-              _controller.error!,
-              style: TextStyle(color: AppColors.textMuted),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => _controller.loadSet(widget.setId),
-              child: const Text('Retry'),
-            ),
-          ],
+      return SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+              const SizedBox(height: 16),
+              Text(
+                _controller.error!,
+                style: const TextStyle(color: AppColors.error),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => _controller.loadSet(widget.setId),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
         ),
       );
     }
 
     if (_controller.totalPages == 0) {
-      return _buildEmptyState();
+      return SliverFillRemaining(child: _buildEmptyState());
     }
 
-    return GestureDetector(
-      onHorizontalDragEnd: (details) {
-        if (details.primaryVelocity! < -200) {
-          // Swipe left - next page
-          _controller.nextPage();
-        } else if (details.primaryVelocity! > 200) {
-          // Swipe right - previous page
-          _controller.previousPage();
-        }
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: _buildBinderGrid(),
-      ),
-    );
-  }
-
-  Widget _buildBinderGrid() {
     final cards = _controller.currentPageCards;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Calculate card height based on available space
-        final availableWidth = constraints.maxWidth;
-        final availableHeight = constraints.maxHeight;
-        
-        // Card width = (available width - 2 gaps) / 3
-        final cardWidth = (availableWidth - 16) / 3;
-        // Card height based on aspect ratio 0.7
-        final cardHeight = cardWidth / 0.7;
-        
-        // Total grid height needed for 3 rows
-        final totalGridHeight = (cardHeight * 3) + 16; // 3 rows + 2 gaps
-        
-        // Use actual height or calculated, whichever is smaller
-        final gridHeight = totalGridHeight > availableHeight 
-            ? availableHeight 
-            : totalGridHeight;
-        
-        // Recalculate aspect ratio based on available height
-        final effectiveCardHeight = (gridHeight - 16) / 3;
-        final effectiveAspectRatio = cardWidth / effectiveCardHeight;
-
-        return SizedBox(
-          height: gridHeight,
-          child: GridView.builder(
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-              childAspectRatio: effectiveAspectRatio.clamp(0.5, 0.85),
-            ),
-            itemCount: 9,
-            itemBuilder: (context, index) {
-              if (index < cards.length) {
-                final slot = cards[index];
-                return _buildCardSlot(slot);
-              } else {
-                return _buildEmptySlot();
-              }
-            },
-          ),
-        );
-      },
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+          childAspectRatio: 0.7,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            if (index < cards.length) {
+              return _buildCardSlot(cards[index]);
+            } else {
+              return _buildEmptySlot();
+            }
+          },
+          childCount: 9, 
+        ),
+      ),
     );
   }
 
@@ -668,68 +648,119 @@ class _SetDetailPageState extends State<SetDetailPage> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: AppColors.darkBlue,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border.all(color: AppColors.glassBorder),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle bar
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.textMuted,
-                borderRadius: BorderRadius.circular(2),
-              ),
+      builder: (context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final isLandscape = constraints.maxWidth > constraints.maxHeight;
+
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.9,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.darkBlue,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(color: AppColors.glassBorder),
             ),
-            const SizedBox(height: 24),
-            
-            // Card image
-            if (card.imageUrl != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: CachedNetworkImage(
-                  imageUrl: card.imageUrl!,
-                  height: 300,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            
-            const SizedBox(height: 16),
-            
-            // Card name
-            Text(
-              card.name,
-              style: Theme.of(context).textTheme.titleLarge,
-              textAlign: TextAlign.center,
-            ),
-            
-            // Card code
-            Text(
-              card.code,
-              style: TextStyle(color: AppColors.textMuted),
-            ),
-            
-            // Card details
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            child: Column(
               children: [
-                _buildDetailChip('Rarity', card.rarity ?? 'N/A'),
-                _buildDetailChip('Color', card.color ?? 'N/A'),
-                _buildDetailChip('Price', card.formattedPrice),
+                // Handle bar
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.textMuted,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // Content
+                Expanded(
+                  child: isLandscape
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Landscape: Image Left
+                          Expanded(
+                            flex: 4,
+                            child: Center(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: CachedNetworkImage(
+                                  imageUrl: card.imageUrl!,
+                                  fit: BoxFit.contain,
+                                  errorWidget: (_,__,___) => const Icon(Icons.broken_image, size: 50, color: AppColors.textMuted),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 24),
+                          // Landscape: Details Right
+                          Expanded(
+                            flex: 6,
+                            child: SingleChildScrollView(
+                              child: _buildCardDetailContent(card),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        children: [
+                          // Portrait: Image Top
+                          Expanded(
+                            flex: 5,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: CachedNetworkImage(
+                                imageUrl: card.imageUrl!,
+                                fit: BoxFit.contain,
+                                errorWidget: (_,__,___) => const Icon(Icons.broken_image, size: 50, color: AppColors.textMuted),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          // Portrait: Details Bottom
+                          Expanded(
+                            flex: 4,
+                            child: SingleChildScrollView(
+                              child: _buildCardDetailContent(card),
+                            ),
+                          ),
+                        ],
+                      ),
+                ),
               ],
             ),
-            
-            const SizedBox(height: 24),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildCardDetailContent(CardModel card) {
+    return Column(
+      children: [
+        Text(
+          card.name,
+          style: Theme.of(context).textTheme.titleLarge,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          card.code,
+          style: TextStyle(color: AppColors.textMuted),
+        ),
+        
+        const SizedBox(height: 16),
+        
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildDetailChip('Rarity', card.rarity ?? 'N/A'),
+            _buildDetailChip('Color', card.color ?? 'N/A'),
+            _buildDetailChip('Price', card.formattedPrice),
           ],
         ),
-      ),
+      ],
     );
   }
 
@@ -849,18 +880,190 @@ class _SetDetailPageState extends State<SetDetailPage> {
       if (addedCount > 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Aggiunte $addedCount carte dalla pagina corrente'),
+            content: Text('Added $addedCount cards from current page'),
             backgroundColor: AppColors.success,
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Nessuna nuova carta da aggiungere in questa pagina'),
+            content: Text('No new cards to add on this page'),
             backgroundColor: AppColors.cyan,
           ),
         );
       }
+    }
+  }
+
+  /// Show list of missing cards
+  void _showMissingCards() {
+    // Get all missing cards from the set
+    final missingCards = _controller.allSetCards
+        .where((card) => !_controller.isCardCollected(card))
+        .toList();
+    
+    // Sort by code
+    missingCards.sort((a, b) => a.code.compareTo(b.code));
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: BoxDecoration(
+          color: AppColors.darkBlue,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: AppColors.glassBorder),
+        ),
+        child: Column(
+          children: [
+            // Handle bar
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.textMuted,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Missing Cards (${missingCards.length})',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // List of missing cards
+            Expanded(
+              child: missingCards.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.check_circle, 
+                               color: AppColors.success, size: 64),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Collection complete!',
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: missingCards.length,
+                      itemBuilder: (context, index) {
+                        final card = missingCards[index];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.glassWhite,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.glassBorder,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              // Card code badge
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.black.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  card.code,
+                                  style: TextStyle(
+                                    color: AppColors.warning.withOpacity(0.8),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              // Card name
+                              Expanded(
+                                child: Text(
+                                  card.name,
+                                  style: TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 14,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              // Rarity badge
+                              if (card.rarity != null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _getRarityColor(card.rarity!)
+                                        .withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    card.rarity!,
+                                    style: TextStyle(
+                                      color: _getRarityColor(card.rarity!),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _getRarityColor(String rarity) {
+    switch (rarity.toUpperCase()) {
+      case 'SEC':
+        return Colors.amber;
+      case 'L':
+        return Colors.orange;
+      case 'SR':
+        return AppColors.purple;
+      case 'R':
+        return AppColors.cyan;
+      case 'UC':
+        return AppColors.success;
+      default:
+        return AppColors.textMuted;
     }
   }
 
@@ -901,7 +1104,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Aggiunte $addedCount carte C e R alla collezione'),
+          content: Text('Added $addedCount C and R cards to collection'),
           backgroundColor: AppColors.success,
         ),
       );
@@ -919,22 +1122,22 @@ class _SetDetailPageState extends State<SetDetailPage> {
           borderRadius: BorderRadius.circular(16),
         ),
         title: Text(
-          'Conferma rimozione',
+          'Confirm removal',
           style: TextStyle(color: AppColors.textPrimary),
         ),
         content: Text(
-          'Vuoi rimuovere tutte le carte comuni (C) e rare (R) dalla collezione?',
+          'Do you want to remove all common (C) and rare (R) cards from collection?',
           style: TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text('Annulla', style: TextStyle(color: AppColors.textMuted)),
+            child: Text('Cancel', style: TextStyle(color: AppColors.textMuted)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogContext, true),
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Rimuovi'),
+            child: const Text('Remove'),
           ),
         ],
       ),
@@ -977,7 +1180,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Rimosse $removedCount carte C e R dalla collezione'),
+          content: Text('Removed $removedCount C and R cards from collection'),
           backgroundColor: AppColors.warning,
         ),
       );

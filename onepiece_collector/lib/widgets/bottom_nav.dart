@@ -6,17 +6,23 @@ import '../theme/app_colors.dart';
 class BottomNav extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
+  final bool isDisabled;
 
   const BottomNav({
     super.key,
     required this.currentIndex,
     required this.onTap,
+    this.isDisabled = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
+    return IgnorePointer(
+      ignoring: isDisabled,
+      child: Opacity(
+        opacity: isDisabled ? 0.5 : 1.0,
+        child: Container(
+          decoration: BoxDecoration(
         color: AppColors.darkBlue,
         boxShadow: [
           BoxShadow(
@@ -51,9 +57,11 @@ class BottomNav extends StatelessWidget {
               _buildAddButton(),
             ],
           ),
-        ),
-      ),
-    );
+        ), // Padding
+      ),   // SafeArea
+    ),     // Container
+    ),     // Opacity
+    );     // IgnorePointer
   }
 
   Widget _buildNavItem({
