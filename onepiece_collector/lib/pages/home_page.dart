@@ -1,16 +1,17 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_theme.dart';
 import '../data/models/set_model.dart';
 import '../controllers/collection_controller.dart';
 import '../widgets/set_card.dart';
 import '../widgets/skeleton_set_card.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Sort options for sets
 enum SetSortOption {
@@ -243,6 +244,9 @@ class _HomePageState extends State<HomePage> {
                         case 'export':
                           _exportCollection();
                           break;
+                        case 'info':
+                          _showAboutDialog();
+                          break;
                       }
                     },
                     itemBuilder: (context) => [
@@ -283,6 +287,16 @@ class _HomePageState extends State<HomePage> {
                             Icon(Icons.file_download, color: AppColors.cyan, size: 20),
                             const SizedBox(width: 12),
                             Text('Export Collection', style: TextStyle(color: AppColors.textPrimary)),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'info',
+                        child: Row(
+                          children: [
+                            Icon(Icons.info_outline, color: AppColors.cyan, size: 20),
+                            const SizedBox(width: 12),
+                            Text('Info & Credits', style: TextStyle(color: AppColors.textPrimary)),
                           ],
                         ),
                       ),
@@ -461,6 +475,7 @@ class _HomePageState extends State<HomePage> {
       final file = File(result.files.single.path!);
       final jsonString = await file.readAsString();
       
+      if (!mounted) return;
       // Import collection
       final count = await context.read<CollectionController>().importCollection(jsonString);
       
@@ -494,6 +509,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _exportCollection() async {
+    bool dialogOpen = false;
     try {
       // Show loading
       if (mounted) {
@@ -504,6 +520,7 @@ class _HomePageState extends State<HomePage> {
             child: CircularProgressIndicator(color: AppColors.cyan),
           ),
         );
+        dialogOpen = true;
       }
 
       // Get JSON data
@@ -516,7 +533,10 @@ class _HomePageState extends State<HomePage> {
       await file.writeAsString(jsonString);
 
       // Close dialog
-      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+      if (mounted && dialogOpen) {
+        Navigator.of(context, rootNavigator: true).pop();
+        dialogOpen = false;
+      }
 
       // Share file
       await Share.shareXFiles(
@@ -533,9 +553,10 @@ class _HomePageState extends State<HomePage> {
         );
       }
     } catch (e) {
-      // Close dialog if open
-      if (mounted) {
+      // Close dialog if still open
+      if (mounted && dialogOpen) {
         Navigator.of(context, rootNavigator: true).pop();
+        dialogOpen = false;
       }
       
       if (mounted) {
@@ -546,6 +567,99 @@ class _HomePageState extends State<HomePage> {
           ),
         );
       }
+    }
+  }
+  Future<void> _showAboutDialog() async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.darkBlue,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppColors.glassBorder),
+        ),
+        title: const Text('Info & Credits', style: TextStyle(color: AppColors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'One Piece Collector App',
+              style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Developed by:',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Patric Reineri',
+              style: TextStyle(color: AppColors.cyan, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            InkWell(
+              onTap: () => _launchUrl('https://github.com/PatricReineri'),
+              child: Row(
+                children: [
+                   const Icon(Icons.link, color: AppColors.cyan, size: 16),
+                   const SizedBox(width: 8),
+                   Expanded(
+                     child: Text(
+                       'GitHub Profile',
+                       style: TextStyle(
+                         color: AppColors.cyan,
+                         decoration: TextDecoration.underline,
+                         decorationColor: AppColors.cyan,
+                       ),
+                     ),
+                   ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: () => _launchUrl('https://github.com/PatricReineri/onepiece_collector_ai_based_app'),
+              child: Row(
+                children: [
+                   const Icon(Icons.code, color: AppColors.cyan, size: 16),
+                   const SizedBox(width: 8),
+                   Expanded(
+                     child: Text(
+                       'App Repository',
+                       style: TextStyle(
+                         color: AppColors.cyan,
+                         decoration: TextDecoration.underline,
+                         decorationColor: AppColors.cyan,
+                       ),
+                     ),
+                   ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close', style: TextStyle(color: AppColors.textPrimary)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _launchUrl(String urlString) async {
+    final uri = Uri.parse(urlString);
+    try {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not launch $urlString'), backgroundColor: AppColors.error),
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('Error launching URL: $e');
     }
   }
 }

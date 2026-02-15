@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 
 /// Service to monitor network connectivity
@@ -20,7 +21,7 @@ class ConnectionService extends ChangeNotifier {
       final results = await _connectivity.checkConnectivity();
       _updateStatus(results);
     } catch (e) {
-      debugPrint('Connectivity check failed: $e');
+      if (kDebugMode) debugPrint('Connectivity check failed: $e');
     }
 
     // Listen to updates

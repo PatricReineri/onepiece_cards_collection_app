@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import '../data/database/database_helper.dart';
 import '../data/models/card_model.dart';
@@ -18,6 +17,10 @@ class CardController extends ChangeNotifier {
   String? _error;
   String? _capturedImageBase64;
   double _totalCollectionValue = 0.0;
+  int _refreshProgress = 0;
+  int _refreshTotal = 0;
+  bool _isRefreshingPrices = false;
+  bool _isDisposed = false;
 
   // Getters
   List<CardModel> get rareCards => _rareCards;
@@ -27,6 +30,9 @@ class CardController extends ChangeNotifier {
   String? get error => _error;
   String? get capturedImageBase64 => _capturedImageBase64;
   double get totalCollectionValue => _totalCollectionValue;
+  int get refreshProgress => _refreshProgress;
+  int get refreshTotal => _refreshTotal;
+  bool get isRefreshingPrices => _isRefreshingPrices;
 
   /// Load rare and expensive cards (top 20 each for preview)
   Future<void> loadRareAndExpensive() async {
@@ -201,34 +207,50 @@ class CardController extends ChangeNotifier {
     }
   }
 
-  /// Fetch and update card price
+  /// Fetch and update card price (without reloading all cards)
   Future<void> updateCardPrice(CardModel card) async {
     try {
       final price = await _api.getCardPrice(card.code);
       if (price != null && card.id != null) {
         final updated = card.copyWith(price: price);
         await _db.updateCard(updated);
-        await loadRareAndExpensive();
       }
     } catch (e) {
       // Price update is optional, don't show error
     }
   }
 
-  /// Update prices for all expensive cards
+  /// Update prices for all cards with progress tracking
   Future<void> refreshPrices() async {
-    _isLoading = true;
-    notifyListeners();
+    _isRefreshingPrices = true;
+    _refreshProgress = 0;
+    _refreshTotal = 0;
+    _safeNotify();
 
     try {
       final cards = await _db.getAllCards();
+      _refreshTotal = cards.length;
+      _safeNotify();
+
       for (final card in cards) {
+        if (_isDisposed) break;
         await updateCardPrice(card);
+        _refreshProgress++;
+        _safeNotify();
       }
     } finally {
-      _isLoading = false;
-      await loadRareAndExpensive();
+      _isRefreshingPrices = false;
+      _refreshProgress = 0;
+      _refreshTotal = 0;
+      if (!_isDisposed) {
+        await loadRareAndExpensive();
+      }
     }
+  }
+
+  /// Safely notify listeners only if not disposed
+  void _safeNotify() {
+    if (!_isDisposed) notifyListeners();
   }
 
   /// Set captured image from camera
@@ -293,6 +315,7 @@ class CardController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _api.dispose();
     super.dispose();
   }

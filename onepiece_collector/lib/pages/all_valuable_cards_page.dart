@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_theme.dart';
 import '../controllers/card_controller.dart';
 import '../widgets/card_tile.dart';
 import '../data/models/card_model.dart';
 
-/// Page showing all valuable cards sorted by price (descending)
-/// Grid view with all priced cards
+/// Page showing all valuable cards sorted by price
+/// Grid view with all cards that have a price, sorted highest first
 class AllValuableCardsPage extends StatefulWidget {
   const AllValuableCardsPage({super.key});
 
@@ -71,12 +70,15 @@ class _AllValuableCardsPageState extends State<AllValuableCardsPage> {
               child: const Icon(Icons.attach_money, color: AppColors.success, size: 18),
             ),
             const SizedBox(width: 12),
-            const Text(
-              'Most Valuable',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
+            Flexible(
+              child: const Text(
+                'All Valuable Cards',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -148,7 +150,7 @@ class _AllValuableCardsPageState extends State<AllValuableCardsPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Cards with market prices will appear here',
+              'Update prices from the Rare & Valuable page',
               style: TextStyle(color: AppColors.textMuted),
             ),
           ],
@@ -173,7 +175,6 @@ class _AllValuableCardsPageState extends State<AllValuableCardsPage> {
           final card = _controller.expensiveCards[index];
           return CardTile(
             card: card,
-            showPrice: true,
             heroTag: 'allvaluable_card_${card.uniqueId}',
             onTap: () => _showCardDetails(card),
           );

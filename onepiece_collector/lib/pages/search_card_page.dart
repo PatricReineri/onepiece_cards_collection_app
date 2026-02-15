@@ -227,117 +227,197 @@ class _SearchCardPageState extends State<SearchCardPage> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => LayoutBuilder(
-        builder: (context, constraints) {
-          final isLandscape = constraints.maxWidth > constraints.maxHeight;
+      builder: (sheetContext) => _CardDetailSheet(card: card, initialIsCollected: isCollected),
+    );
+  }
+}
 
-          return Container(
-            height: MediaQuery.of(context).size.height * 0.9,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: AppColors.darkBlue,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border.all(color: AppColors.glassBorder),
-            ),
-            child: Column(
-              children: [
-                // Handle
-                Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.textMuted, borderRadius: BorderRadius.circular(2))),
-                const SizedBox(height: 16),
-                
-                // Content
-                Expanded(
-                  child: isLandscape 
-                    ? Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                           // Landscape: Image Left
-                           Expanded(
-                             flex: 4,
-                             child: Center(
-                               child: ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: CachedNetworkImage(
-                                  imageUrl: card.imageUrl ?? '',
-                                  fit: BoxFit.contain,
-                                  errorWidget: (context, url, err) => const Icon(Icons.broken_image, size: 50, color: AppColors.textMuted),
-                                ),
+/// Stateful bottom sheet for card details with collection toggle
+class _CardDetailSheet extends StatefulWidget {
+  final CardModel card;
+  final bool initialIsCollected;
+
+  const _CardDetailSheet({required this.card, required this.initialIsCollected});
+
+  @override
+  State<_CardDetailSheet> createState() => _CardDetailSheetState();
+}
+
+class _CardDetailSheetState extends State<_CardDetailSheet> {
+  late bool _isCollected;
+  bool _isToggling = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isCollected = widget.initialIsCollected;
+  }
+
+  Future<void> _toggleCollection() async {
+    if (_isToggling) return;
+    setState(() => _isToggling = true);
+
+    final controller = context.read<CollectionController>();
+
+    bool success;
+    if (_isCollected) {
+      success = await controller.removeCardFromCollection(widget.card);
+    } else {
+      success = await controller.addCardToCollection(widget.card);
+    }
+
+    if (mounted) {
+      setState(() {
+        if (success) _isCollected = !_isCollected;
+        _isToggling = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+              ? (_isCollected ? '${widget.card.name} added to collection' : '${widget.card.name} removed from collection')
+              : 'Operation failed',
+          ),
+          backgroundColor: success ? AppColors.success : AppColors.error,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isLandscape = constraints.maxWidth > constraints.maxHeight;
+
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.9,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppColors.darkBlue,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border.all(color: AppColors.glassBorder),
+          ),
+          child: Column(
+            children: [
+              // Handle
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.textMuted, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 16),
+              
+              // Content
+              Expanded(
+                child: isLandscape 
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 4,
+                          child: Center(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: CachedNetworkImage(
+                                imageUrl: widget.card.imageUrl ?? '',
+                                fit: BoxFit.contain,
+                                errorWidget: (context, url, err) => const Icon(Icons.broken_image, size: 50, color: AppColors.textMuted),
                               ),
-                             ),
-                           ),
-                           const SizedBox(width: 24),
-                           // Landscape: Info Right
-                           Expanded(
-                             flex: 6,
-                             child: SingleChildScrollView(
-                               child: _buildCardInfoContent(card, isCollected, context),
-                             ),
-                           ),
-                        ],
-                      )
-                    : Column(
-                        children: [
-                           // Portrait: Image Top
-                           Expanded(
-                             flex: 5,
-                             child: ClipRRect(
-                               borderRadius: BorderRadius.circular(16),
-                               child: CachedNetworkImage(
-                                 imageUrl: card.imageUrl ?? '',
-                                 fit: BoxFit.contain,
-                                 errorWidget: (context, url, err) => const Icon(Icons.broken_image, size: 50, color: AppColors.textMuted),
-                               ),
-                             ),
-                           ),
-                           const SizedBox(height: 16),
-                           // Portrait: Info Bottom
-                           Expanded(
-                             flex: 4,
-                             child: SingleChildScrollView(
-                               child: _buildCardInfoContent(card, isCollected, context),
-                             ),
-                           ),
-                        ],
-                      ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 24),
+                        Expanded(
+                          flex: 6,
+                          child: SingleChildScrollView(
+                            child: _buildInfoContent(),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      children: [
+                        Expanded(
+                          flex: 5,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: CachedNetworkImage(
+                              imageUrl: widget.card.imageUrl ?? '',
+                              fit: BoxFit.contain,
+                              errorWidget: (context, url, err) => const Icon(Icons.broken_image, size: 50, color: AppColors.textMuted),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Expanded(
+                          flex: 4,
+                          child: SingleChildScrollView(
+                            child: _buildInfoContent(),
+                          ),
+                        ),
+                      ],
+                    ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildCardInfoContent(CardModel card, bool isCollected, BuildContext context) {
+  Widget _buildInfoContent() {
     return Column(
       children: [
-        Text(card.name, style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: AppColors.textPrimary), textAlign: TextAlign.center),
+        Text(widget.card.name, style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: AppColors.textPrimary), textAlign: TextAlign.center),
         const SizedBox(height: 8),
-        Text(card.code, style: const TextStyle(color: AppColors.cyan, fontSize: 16, fontWeight: FontWeight.bold)),
+        Text(widget.card.code, style: const TextStyle(color: AppColors.cyan, fontSize: 16, fontWeight: FontWeight.bold)),
         
         const SizedBox(height: 16),
         
-        // Collection Status Badge
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: isCollected ? AppColors.success.withOpacity(0.2) : AppColors.error.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: isCollected ? AppColors.success : AppColors.error),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(isCollected ? Icons.check_circle : Icons.cancel, color: isCollected ? AppColors.success : AppColors.error),
-              const SizedBox(width: 8),
-              Text(
-                isCollected ? 'IN COLLECTION' : 'NOT COLLECTED',
-                style: TextStyle(
-                  color: isCollected ? AppColors.success : AppColors.error,
-                  fontWeight: FontWeight.bold,
+        // Collection Status Badge (tappable)
+        GestureDetector(
+          onTap: _isToggling ? null : _toggleCollection,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: _isCollected ? AppColors.success.withOpacity(0.2) : AppColors.error.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _isCollected ? AppColors.success : AppColors.error),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(_isCollected ? Icons.check_circle : Icons.cancel, color: _isCollected ? AppColors.success : AppColors.error),
+                const SizedBox(width: 8),
+                Text(
+                  _isCollected ? 'IN COLLECTION' : 'NOT COLLECTED',
+                  style: TextStyle(
+                    color: _isCollected ? AppColors.success : AppColors.error,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Add / Remove button
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _isToggling ? null : _toggleCollection,
+            icon: _isToggling
+              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : Icon(_isCollected ? Icons.remove_circle_outline : Icons.add_circle_outline),
+            label: Text(_isCollected ? 'Remove from Collection' : 'Add to Collection'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _isCollected ? AppColors.error : AppColors.success,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
           ),
         ),
 
@@ -349,18 +429,18 @@ class _SearchCardPageState extends State<SearchCardPage> {
           runSpacing: 16,
           alignment: WrapAlignment.center,
           children: [
-             _buildDetailItem('Rarity', card.rarity ?? '-'),
-             _buildDetailItem('Color', card.color ?? '-'),
-             _buildDetailItem('Type', card.cardType ?? '-'),
-             if (card.price != null && card.price! > 0)
-               _buildDetailItem('Market Price', '€${card.price!.toStringAsFixed(2)}'),
+            _buildDetailChip('Rarity', widget.card.rarity ?? '-'),
+            _buildDetailChip('Color', widget.card.color ?? '-'),
+            _buildDetailChip('Type', widget.card.cardType ?? '-'),
+            if (widget.card.price != null && widget.card.price! > 0)
+              _buildDetailChip('Market Price', '€${widget.card.price!.toStringAsFixed(2)}'),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildDetailItem(String label, String value) {
+  Widget _buildDetailChip(String label, String value) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(

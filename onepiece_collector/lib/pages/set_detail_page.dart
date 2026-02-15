@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_theme.dart';
+import '../controllers/collection_controller.dart';
 import '../controllers/set_controller.dart';
 import '../data/models/card_model.dart';
 
@@ -27,6 +28,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _pageInputController = TextEditingController();
   final FocusNode _pageInputFocus = FocusNode();
+  CollectionController? _collectionController;
 
   @override
   void initState() {
@@ -36,11 +38,24 @@ class _SetDetailPageState extends State<SetDetailPage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _collectionController = context.read<CollectionController>();
+  }
+
+  @override
   void dispose() {
     _controller.removeListener(_onControllerUpdate);
     _searchController.dispose();
     _pageInputController.dispose();
     _pageInputFocus.dispose();
+    // Refresh home page set counts after the widget tree is unlocked
+    final controller = _collectionController;
+    if (controller != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        controller.loadSets();
+      });
+    }
     super.dispose();
   }
 
@@ -339,7 +354,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'PAGINA ',
+                'PAGE ',
                 style: TextStyle(
                   color: AppColors.white,
                   fontSize: 18,
@@ -394,7 +409,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
                 ),
               ),
               Text(
-                ' di ${_controller.totalPages > 0 ? _controller.totalPages - 1 : 0}',
+                ' of ${_controller.totalPages > 0 ? _controller.totalPages - 1 : 0}',
                 style: TextStyle(
                   color: AppColors.white.withOpacity(0.7),
                   fontSize: 18,
@@ -657,81 +672,88 @@ class _SetDetailPageState extends State<SetDetailPage> {
       builder: (context) => LayoutBuilder(
         builder: (context, constraints) {
           final isLandscape = constraints.maxWidth > constraints.maxHeight;
+          final screenHeight = MediaQuery.of(context).size.height;
 
           return Container(
-            height: MediaQuery.of(context).size.height * 0.9,
-            padding: const EdgeInsets.all(24),
+            constraints: BoxConstraints(
+              maxHeight: screenHeight * 0.85,
+            ),
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
             decoration: BoxDecoration(
               color: AppColors.darkBlue,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               border: Border.all(color: AppColors.glassBorder),
             ),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 // Handle bar
                 Container(
                   width: 40,
                   height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
                     color: AppColors.textMuted,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                const SizedBox(height: 16),
                 
                 // Content
-                Expanded(
+                Flexible(
                   child: isLandscape
                     ? Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           // Landscape: Image Left
-                          Expanded(
+                          Flexible(
                             flex: 4,
-                            child: Center(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(maxHeight: screenHeight * 0.65),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(16),
                                 child: CachedNetworkImage(
-                                  imageUrl: card.imageUrl!,
+                                  imageUrl: card.imageUrl ?? '',
                                   fit: BoxFit.contain,
-                                  errorWidget: (_,__,___) => const Icon(Icons.broken_image, size: 50, color: AppColors.textMuted),
+                                  errorWidget: (_, __, ___) => const Icon(Icons.broken_image, size: 50, color: AppColors.textMuted),
                                 ),
                               ),
                             ),
                           ),
                           const SizedBox(width: 24),
                           // Landscape: Details Right
-                          Expanded(
+                          Flexible(
                             flex: 6,
-                            child: SingleChildScrollView(
-                              child: _buildCardDetailContent(card),
+                            child: Center(
+                              child: SingleChildScrollView(
+                                child: _buildCardDetailContent(card),
+                              ),
                             ),
                           ),
                         ],
                       )
-                    : Column(
-                        children: [
-                          // Portrait: Image Top
-                          Expanded(
-                            flex: 5,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: CachedNetworkImage(
-                                imageUrl: card.imageUrl!,
-                                fit: BoxFit.contain,
-                                errorWidget: (_,__,___) => const Icon(Icons.broken_image, size: 50, color: AppColors.textMuted),
+                    : SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Portrait: Image
+                            ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxHeight: screenHeight * 0.45,
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: CachedNetworkImage(
+                                  imageUrl: card.imageUrl ?? '',
+                                  fit: BoxFit.contain,
+                                  errorWidget: (_, __, ___) => const Icon(Icons.broken_image, size: 50, color: AppColors.textMuted),
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          // Portrait: Details Bottom
-                          Expanded(
-                            flex: 4,
-                            child: SingleChildScrollView(
-                              child: _buildCardDetailContent(card),
-                            ),
-                          ),
-                        ],
+                            const SizedBox(height: 20),
+                            // Portrait: Details
+                            _buildCardDetailContent(card),
+                          ],
+                        ),
                       ),
                 ),
               ],
@@ -744,22 +766,34 @@ class _SetDetailPageState extends State<SetDetailPage> {
 
   Widget _buildCardDetailContent(CardModel card) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           card.name,
-          style: Theme.of(context).textTheme.titleLarge,
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 4),
         Text(
           card.code,
-          style: TextStyle(color: AppColors.textMuted),
+          style: const TextStyle(
+            color: AppColors.cyan,
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         
         const SizedBox(height: 16),
         
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        // Detail chips in a centered wrap
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          alignment: WrapAlignment.center,
           children: [
             _buildDetailChip('Rarity', card.rarity ?? 'N/A'),
             _buildDetailChip('Color', card.color ?? 'N/A'),
@@ -772,23 +806,26 @@ class _SetDetailPageState extends State<SetDetailPage> {
 
   Widget _buildDetailChip(String label, String value) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.glassWhite,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.glassBorder),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             label,
-            style: TextStyle(
+            style: const TextStyle(
               color: AppColors.textMuted,
-              fontSize: 10,
+              fontSize: 11,
             ),
           ),
+          const SizedBox(height: 2),
           Text(
             value,
-            style: TextStyle(
+            style: const TextStyle(
               color: AppColors.textPrimary,
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -975,80 +1012,175 @@ class _SetDetailPageState extends State<SetDetailPage> {
                       itemCount: missingCards.length,
                       itemBuilder: (context, index) {
                         final card = missingCards[index];
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.glassWhite,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: AppColors.glassBorder,
+                        return GestureDetector(
+                          onTap: () => _showCardImagePreview(card),
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
                             ),
-                          ),
-                          child: Row(
-                            children: [
-                              // Card code badge
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.black.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  card.code,
-                                  style: TextStyle(
-                                    color: AppColors.warning.withOpacity(0.8),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    fontFamily: 'monospace',
-                                  ),
-                                ),
+                            decoration: BoxDecoration(
+                              color: AppColors.glassWhite,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: AppColors.glassBorder,
                               ),
-                              const SizedBox(width: 12),
-                              // Card name
-                              Expanded(
-                                child: Text(
-                                  card.name,
-                                  style: TextStyle(
-                                    color: AppColors.textPrimary,
-                                    fontSize: 14,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              // Rarity badge
-                              if (card.rarity != null)
+                            ),
+                            child: Row(
+                              children: [
+                                // Card code badge
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
+                                    horizontal: 10,
+                                    vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: _getRarityColor(card.rarity!)
-                                        .withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(6),
+                                    color: AppColors.black.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
-                                    card.rarity!,
+                                    card.code,
                                     style: TextStyle(
-                                      color: _getRarityColor(card.rarity!),
-                                      fontSize: 10,
+                                      color: AppColors.warning.withOpacity(0.8),
+                                      fontSize: 12,
                                       fontWeight: FontWeight.bold,
+                                      fontFamily: 'monospace',
                                     ),
                                   ),
                                 ),
-                            ],
+                                const SizedBox(width: 12),
+                                // Card name
+                                Expanded(
+                                  child: Text(
+                                    card.name,
+                                    style: TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontSize: 14,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                // Rarity badge
+                                if (card.rarity != null)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _getRarityColor(card.rarity!)
+                                          .withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      card.rarity!,
+                                      style: TextStyle(
+                                        color: _getRarityColor(card.rarity!),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                const SizedBox(width: 8),
+                                Icon(Icons.image_outlined, size: 18, color: AppColors.textMuted),
+                              ],
+                            ),
                           ),
                         );
                       },
                     ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Show a fullscreen image preview for a card
+  void _showCardImagePreview(CardModel card) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(24),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Card content
+            Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.75,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.darkBlue,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.glassBorder),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Image
+                  Flexible(
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                      child: card.imageUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: card.imageUrl!,
+                            fit: BoxFit.contain,
+                            placeholder: (context, url) => const SizedBox(
+                              height: 200,
+                              child: Center(child: CircularProgressIndicator(color: AppColors.cyan)),
+                            ),
+                            errorWidget: (context, url, error) => const SizedBox(
+                              height: 200,
+                              child: Center(child: Icon(Icons.broken_image, size: 64, color: AppColors.textMuted)),
+                            ),
+                          )
+                        : const SizedBox(
+                            height: 200,
+                            child: Center(child: Icon(Icons.image_not_supported, size: 64, color: AppColors.textMuted)),
+                          ),
+                    ),
+                  ),
+                  // Card info footer
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        Text(
+                          card.name,
+                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          card.code,
+                          style: const TextStyle(color: AppColors.cyan, fontSize: 14, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Close button
+            Positioned(
+              top: 0,
+              right: 0,
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.darkBlue,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.glassBorder),
+                  ),
+                  child: const Icon(Icons.close, color: AppColors.textPrimary, size: 20),
+                ),
+              ),
             ),
           ],
         ),

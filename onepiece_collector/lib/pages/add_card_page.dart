@@ -1,10 +1,13 @@
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../controllers/card_controller.dart';
+import '../controllers/collection_controller.dart';
 
 /// Page 4 - Aggiungi Carta (Camera Scan)
 /// Fullscreen camera view with scan frame and manual code input
@@ -61,6 +64,8 @@ class _AddCardPageState extends State<AddCardPage> with WidgetsBindingObserver {
     if (mounted) setState(() {});
   }
 
+  // TODO: Implement camera scanning feature
+  // ignore: unused_element
   Future<void> _initCamera() async {
     try {
       _cameras = await availableCameras();
@@ -78,7 +83,7 @@ class _AddCardPageState extends State<AddCardPage> with WidgetsBindingObserver {
         }
       }
     } catch (e) {
-      debugPrint('Camera initialization error: $e');
+      if (kDebugMode) debugPrint('Camera initialization error: $e');
     }
   }
 
@@ -127,6 +132,7 @@ class _AddCardPageState extends State<AddCardPage> with WidgetsBindingObserver {
     );
   }
 
+  // ignore: unused_element
   Widget _buildModeToggle() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -319,6 +325,7 @@ class _AddCardPageState extends State<AddCardPage> with WidgetsBindingObserver {
     );
   }
 
+  // ignore: unused_element
   Widget _buildCameraView() {
     if (!_isCameraInitialized || _cameraController == null) {
       return Center(
@@ -438,6 +445,8 @@ class _AddCardPageState extends State<AddCardPage> with WidgetsBindingObserver {
 
     if (success && mounted) {
       _codeController.clear();
+      // Refresh CollectionController so home page set counts update
+      context.read<CollectionController>().loadSets();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Card $code added to collection!'),

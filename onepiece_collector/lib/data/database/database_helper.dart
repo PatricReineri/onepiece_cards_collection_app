@@ -441,7 +441,6 @@ class DatabaseHelper {
     
     // Extract unique base codes (without letter suffixes) for main set check
     final Set<String> collectedBaseCodes = {};
-    bool hasAllRares = true;
     final Set<String> collectedRareCodes = {};
     
     for (final card in collectedCards) {
@@ -537,7 +536,6 @@ class DatabaseHelper {
 
   /// Import data from a map, returns the number of cards imported
   Future<int> importData(Map<String, dynamic> data) async {
-    final db = await database;
     int count = 0;
 
     // Import cards

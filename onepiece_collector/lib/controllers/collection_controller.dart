@@ -268,6 +268,44 @@ class CollectionController extends ChangeNotifier {
     return await _db.isCardCollected(card.name, card.code);
   }
 
+  /// Add a card to the collection
+  Future<bool> addCardToCollection(CardModel card) async {
+    try {
+      await _db.insertCard(card);
+      // Extract set code and update completion
+      final setCode = _extractSetCode(card.code);
+      if (setCode.isNotEmpty) {
+        await _db.updateSetCompletion(setCode);
+      }
+      await _updateSetCardCounts();
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = 'Failed to add card: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Remove a card from the collection
+  Future<bool> removeCardFromCollection(CardModel card) async {
+    try {
+      await _db.deleteCardByNameAndCode(card.name, card.code);
+      // Extract set code and update completion
+      final setCode = _extractSetCode(card.code);
+      if (setCode.isNotEmpty) {
+        await _db.updateSetCompletion(setCode);
+      }
+      await _updateSetCardCounts();
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = 'Failed to remove card: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
   /// Get all collected cards grouped by Set
   /// Returns a Map where key is SetModel and value is List of cards in that set
   Future<Map<SetModel, List<CardModel>>> getCheckpointData() async {

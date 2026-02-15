@@ -41,54 +41,135 @@ class _RarePageState extends State<RarePage> {
     return Scaffold(
       backgroundColor: AppColors.darkBlue,
       body: SafeArea(
-        child: _controller.isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: AppColors.cyan),
-              )
-            : RefreshIndicator(
-                onRefresh: _controller.loadRareAndExpensive,
-                color: AppColors.cyan,
-                backgroundColor: AppColors.darkBlue,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header
-                      _buildHeader(),
+        child: Stack(
+          children: [
+            // Main content
+            _controller.isLoading && !_controller.isRefreshingPrices
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.cyan),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _controller.loadRareAndExpensive,
+                    color: AppColors.cyan,
+                    backgroundColor: AppColors.darkBlue,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header
+                          _buildHeader(),
 
-                      // Rare cards section
-                      _buildSection(
-                        sectionId: 'rare',
-                        title: 'Rare Cards',
-                        subtitle: 'SR, SEC, L, SP rarities',
-                        icon: Icons.star,
-                        iconColor: AppColors.purple,
-                        cards: _controller.rareCards,
-                        emptyMessage: 'No rare cards in your collection yet',
-                        onSeeAll: () => context.go('/all-rare'),
+                          // Rare cards section
+                          _buildSection(
+                            sectionId: 'rare',
+                            title: 'Rare Cards',
+                            subtitle: 'SR, SEC, L, SP rarities',
+                            icon: Icons.star,
+                            iconColor: AppColors.purple,
+                            cards: _controller.rareCards,
+                            emptyMessage: 'No rare cards in your collection yet',
+                            onSeeAll: () => context.go('/all-rare'),
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // Expensive cards section
+                          _buildSection(
+                            sectionId: 'valuable',
+                            title: 'Most Valuable',
+                            subtitle: 'Sorted by market price',
+                            icon: Icons.attach_money,
+                            iconColor: AppColors.success,
+                            cards: _controller.expensiveCards,
+                            showPrice: true,
+                            emptyMessage: 'No priced cards available',
+                            onSeeAll: () => context.go('/all-valuable'),
+                          ),
+
+                          const SizedBox(height: 32),
+                        ],
                       ),
+                    ),
+                  ),
 
-                      const SizedBox(height: 24),
-
-                      // Expensive cards section
-                      _buildSection(
-                        sectionId: 'valuable',
-                        title: 'Most Valuable',
-                        subtitle: 'Sorted by market price',
-                        icon: Icons.attach_money,
-                        iconColor: AppColors.success,
-                        cards: _controller.expensiveCards,
-                        showPrice: true,
-                        emptyMessage: 'No priced cards available',
-                        onSeeAll: () => context.go('/all-valuable'),
-                      ),
-
-                      const SizedBox(height: 32),
-                    ],
+            // Blocking overlay during price refresh
+            if (_controller.isRefreshingPrices)
+              Container(
+                color: Colors.black.withOpacity(0.7),
+                child: Center(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 40),
+                    padding: const EdgeInsets.all(28),
+                    decoration: BoxDecoration(
+                      color: AppColors.darkBlue,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.glassBorder),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.cyan.withOpacity(0.15),
+                          blurRadius: 30,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.currency_exchange,
+                          color: AppColors.cyan,
+                          size: 40,
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Updating Prices',
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _controller.refreshTotal > 0
+                            ? '${_controller.refreshProgress} / ${_controller.refreshTotal}'
+                            : 'Loading cards...',
+                          style: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: _controller.refreshTotal > 0
+                              ? _controller.refreshProgress / _controller.refreshTotal
+                              : null,
+                            minHeight: 8,
+                            backgroundColor: AppColors.glassWhite,
+                            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.cyan),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _controller.refreshTotal > 0
+                            ? '${(_controller.refreshProgress / _controller.refreshTotal * 100).toStringAsFixed(0)}%'
+                            : '',
+                          style: const TextStyle(
+                            color: AppColors.cyan,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
+          ],
+        ),
       ),
     );
   }
@@ -105,6 +186,33 @@ class _RarePageState extends State<RarePage> {
               Text(
                 'Rare & Valuable',
                 style: Theme.of(context).textTheme.headlineLarge,
+              ),
+              // Refresh prices button
+              GestureDetector(
+                onTap: _controller.isRefreshingPrices ? null : _refreshPrices,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.cyan.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.cyan.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.refresh, color: AppColors.cyan, size: 18),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Update Prices',
+                        style: TextStyle(
+                          color: AppColors.cyan,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
