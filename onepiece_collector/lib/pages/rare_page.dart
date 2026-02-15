@@ -251,7 +251,7 @@ class _RarePageState extends State<RarePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Valore Collezione',
+                      'Collection Value',
                       style: TextStyle(
                         color: AppColors.textMuted,
                         fontSize: 12,

@@ -1,3 +1,5 @@
+![App Logo](onepiece_collector/lib/data/images/logo_app.png)
+
 # One Piece Collector App
 
 A sophisticated and responsive Flutter application designed for One Piece Trading Card Game collectors. This app have a comprehensive database to manage collections, track market values, and organize cards efficiently.
@@ -56,3 +58,5 @@ This project is a fan-made application and is not affiliated with, endorsed, spo
 
 **ONE PIECE CARD GAME**  
 @Eiichiro Oda/Shueisha @Eiichiro Oda/Shueisha, Toei Animation
+
+Card information is provided using the OPTCG API: https://optcgapi.com/documentation#docu-4
