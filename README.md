@@ -1,4 +1,4 @@
-![App Logo](onepiece_collector/lib/data/images/logo_app.png)
+<img src="onepiece_collector/lib/data/images/logo_app.png" alt="App Logo" width="180" />
 
 # One Piece Collector App
 
@@ -15,40 +15,40 @@ The central hub of the application. Here, users can view all released card sets 
 - **Features**: Sort sets by release date or completion percentage, Sync data from API, Import/Export collection (JSON).
 - **Navigation**: Access to Sets Checkpoint and Global Search.
 
-![Home Page](images/home_page.png)
+<img src="images/home_page.png" alt="Home Page" width="360" />
 
 #### 2. Set Detail Page
 (Accessed by tapping a set in Home)
 Displays all cards within a specific set. Allows users to toggle collected status and view individual card details.
 
-![Set Detail Page](images/set_detail_page.png)
+<img src="images/set_detail_page.png" alt="Set Detail Page" width="360" />
 
 #### 2.5 Show missing cards in a set
 A feature within the Set Detail Page that highlights which cards are missing from the user's collection, making it easier to identify gaps and prioritize acquisitions.
 
-![Missing Cards](images/missing_cards.png)
+<img src="images/missing_cards.png" alt="Missing Cards" width="360" />
 
 #### 3. Rare & Valuable Dashboard
 A dedicated dashboard for the "Crown Jewels" of your collection.
 - **Features**: Displays total collection market value, highlights high-rarity cards (SEC, SR, SP, L), and lists top cards by market price.
 - **Functionality**: Pull to refresh market prices.
 
-![Rare Page](images/rare_page.png)
+<img src="images/rare_page.png" alt="Rare Page" width="360" />
 
 #### 4. Search Card
 A global search tool to find any card in the database by name or code, regardless of ownership status.
 
-![Search Card Page](images/search_card_page.png)
+<img src="images/search_card_page.png" alt="Search Card Page" width="360" />
 
 #### 5. Sets Checkpoint
 A compact, list-based view of the collection organized by set, useful for quick inventory checks.
 
-![Sets Checkpoint Page](images/sets_checkpoint_page.png)
+<img src="images/sets_checkpoint_page.png" alt="Sets Checkpoint Page" width="360" />
 
 #### 6. Rare & Valuable Lists
 Detailed grid views for browsing all rare cards or all valuable cards in the collection.
 
-![Rare Cards List](images/all_rare_cards_page.png)
+<img src="images/all_rare_cards_page.png" alt="Rare Cards List" width="360" />
 
 ---
 
