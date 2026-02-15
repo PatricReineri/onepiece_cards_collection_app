@@ -13,42 +13,40 @@ The central hub of the application. Here, users can view all released card sets 
 - **Features**: Sort sets by release date or completion percentage, Sync data from API, Import/Export collection (JSON).
 - **Navigation**: Access to Sets Checkpoint and Global Search.
 
-![Home Page](images/home_page.jpg)
+![Home Page](images/home_page.png)
 
 #### 2. Set Detail Page
 (Accessed by tapping a set in Home)
 Displays all cards within a specific set. Allows users to toggle collected status and view individual card details.
 
-![Set Detail Page](images/set_detail_page.jpg)
+![Set Detail Page](images/set_detail_page.png)
+
+#### 2.5 Show missing cards in a set
+A feature within the Set Detail Page that highlights which cards are missing from the user's collection, making it easier to identify gaps and prioritize acquisitions.
+
+![Missing Cards](images/missing_cards.png)
 
 #### 3. Rare & Valuable Dashboard
 A dedicated dashboard for the "Crown Jewels" of your collection.
 - **Features**: Displays total collection market value, highlights high-rarity cards (SEC, SR, SP, L), and lists top cards by market price.
 - **Functionality**: Pull to refresh market prices.
 
-![Rare Page](images/rare_page.jpg)
+![Rare Page](images/rare_page.png)
 
-#### 4. Add Card
-The input interface for expanding the collection.
-- **Manual Mode**: Enter card codes (e.g., OP01-001) with validation.
-- **Camera Mode**: AI-assisted scanning to identify cards via camera (in development).
-
-![Add Card Page](images/add_card_page.jpg)
-
-#### 5. Search Card
+#### 4. Search Card
 A global search tool to find any card in the database by name or code, regardless of ownership status.
 
-![Search Card Page](images/search_card_page.jpg)
+![Search Card Page](images/search_card_page.png)
 
-#### 6. Sets Checkpoint
+#### 5. Sets Checkpoint
 A compact, list-based view of the collection organized by set, useful for quick inventory checks.
 
-![Sets Checkpoint Page](images/sets_checkpoint_page.jpg)
+![Sets Checkpoint Page](images/sets_checkpoint_page.png)
 
-#### 7. Rare & Valuable Lists
+#### 6. Rare & Valuable Lists
 Detailed grid views for browsing all rare cards or all valuable cards in the collection.
 
-![Rare Cards List](images/all_rare_cards_page.jpg)
+![Rare Cards List](images/all_rare_cards_page.png)
 
 ---
 
