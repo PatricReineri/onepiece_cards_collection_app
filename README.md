@@ -4,7 +4,7 @@ A sophisticated Flutter application designed for One Piece Trading Card Game col
 
 ## Application Overview
 
-The application is structured into several key areas allowing users to browse sets, track specific rare cards, calculate collection value in real-time, and add new cards via manual entry or camera scanning.
+The application is structured into several key areas allowing users to browse sets, track specific rare cards, calculate collection value in real-time, and add new cards via manual entry.
 
 ### Pages & Features
 
