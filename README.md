@@ -1,6 +1,6 @@
 # One Piece Collector App
 
-A sophisticated Flutter application designed for One Piece Trading Card Game collectors. This app have a comprehensive database to manage collections, track market values, and organize cards efficiently.
+A sophisticated and responsive Flutter application designed for One Piece Trading Card Game collectors. This app have a comprehensive database to manage collections, track market values, and organize cards efficiently.
 
 ## Application Overview
 
